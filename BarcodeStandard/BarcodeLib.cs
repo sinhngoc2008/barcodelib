@@ -374,10 +374,7 @@ namespace BarcodeLib
 
             DateTime dtStartTime = DateTime.Now;
 
-            GenerateBarcode();
-
-            this.Encoded_Value = ibarcode.Encoded_Value;
-            this.Raw_Data = ibarcode.RawData;
+            this.Encoded_Value = GenerateBarcode();
 
             _Encoded_Image = (Image)Generate_Image();
 
@@ -513,7 +510,8 @@ namespace BarcodeLib
                 default: throw new Exception("EENCODE-2: Unsupported encoding type specified.");
             }//switch
 
-            return this.Encoded_Value;
+            this.RawData = ibarcode.RawData;
+            return ibarcode.Encoded_Value;
 
         }
         #endregion
@@ -707,6 +705,109 @@ namespace BarcodeLib
 
                         break;
                     }//case
+                case TYPE.UPCE:
+                    {
+                        // Automatically calculate Width if applicable.
+                        Width = BarWidth * Encoded_Value.Length ?? Width;
+
+                        // Automatically calculate Height if applicable.
+                        Height = (int?)(Width / AspectRatio) ?? Height;
+
+                        int ILHeight = Height;
+                        int topLabelAdjustment = 0;
+
+                        int shiftAdjustment = 0;
+                        int iBarWidth = Width / Encoded_Value.Length;
+
+                        //set alignment
+                        switch (Alignment)
+                        {
+                            case AlignmentPositions.LEFT:
+                                shiftAdjustment = 0;
+                                break;
+                            case AlignmentPositions.RIGHT:
+                                shiftAdjustment = (Width % Encoded_Value.Length);
+                                break;
+                            case AlignmentPositions.CENTER:
+                            default:
+                                shiftAdjustment = (Width % Encoded_Value.Length) / 2;
+                                break;
+                        }//switch
+
+                        if (IncludeLabel)
+                        {
+                            if ((AlternateLabel == null || RawData.StartsWith(AlternateLabel)) && _StandardizeLabel)
+                            {
+                                // UPCA standardized label
+                                string defTxt = RawData;
+                                string labTxt = defTxt.Substring(0, 1) + "--" + defTxt.Substring(1, 6) + "--" + defTxt.Substring(7);
+
+                                Font labFont = new Font(this.LabelFont != null ? this.LabelFont.FontFamily.Name : "Arial", Labels.getFontsize(Width, Height, labTxt), FontStyle.Regular);
+                                if (this.LabelFont != null)
+                                {
+                                    this.LabelFont.Dispose();
+                                }
+                                LabelFont = labFont;
+
+                                ILHeight -= (labFont.Height / 2);
+
+                                iBarWidth = (int)Width / Encoded_Value.Length;
+                            }
+                            else
+                            {
+                                // Shift drawing down if top label.
+                                if ((LabelPosition & (LabelPositions.TOPCENTER | LabelPositions.TOPLEFT | LabelPositions.TOPRIGHT)) > 0)
+                                    topLabelAdjustment = this.LabelFont.Height;
+
+                                ILHeight -= this.LabelFont.Height;
+                            }
+                        }
+
+                        bitmap = new Bitmap(Width, Height);
+                        int iBarWidthModifier = 1;
+                        if (iBarWidth <= 0)
+                            throw new Exception("EGENERATE_IMAGE-2: Image size specified not large enough to draw image. (Bar size determined to be less than 1 pixel)");
+
+                        //draw image
+                        int pos = 0;
+                        int halfBarWidth = (int)(iBarWidth * 0.5);
+
+                        using (Graphics g = Graphics.FromImage(bitmap))
+                        {
+                            //clears the image and colors the entire background
+                            g.Clear(BackColor);
+
+                            //lines are fBarWidth wide so draw the appropriate color line vertically
+                            using (Pen backpen = new Pen(BackColor, iBarWidth / iBarWidthModifier))
+                            {
+                                using (Pen pen = new Pen(ForeColor, iBarWidth / iBarWidthModifier))
+                                {
+                                    while (pos < Encoded_Value.Length)
+                                    {
+                                        if (Encoded_Value[pos] == '1')
+                                        {
+                                            g.DrawLine(pen, new Point(pos * iBarWidth + shiftAdjustment + halfBarWidth, topLabelAdjustment), new Point(pos * iBarWidth + shiftAdjustment + halfBarWidth, ILHeight + topLabelAdjustment));
+                                        }
+
+                                        pos++;
+                                    }//while
+                                }//using
+                            }//using
+                        }//using
+                        if (IncludeLabel)
+                        {
+                            if ((AlternateLabel == null || RawData.StartsWith(AlternateLabel)) && _StandardizeLabel)
+                            {
+                                Labels.Label_UPCE(this, bitmap);
+                            }
+                            else
+                            {
+                                Labels.Label_Generic(this, bitmap);
+                            }
+                        }
+
+                        break;
+                    }//case
                 case TYPE.EAN13:
                     {
                         // Automatically calculate Width if applicable.
@@ -802,6 +903,110 @@ namespace BarcodeLib
                             if (((AlternateLabel == null) || RawData.StartsWith(AlternateLabel)) && _StandardizeLabel)
                             {
                                 Labels.Label_EAN13(this, bitmap);
+                            }
+                            else
+                            {
+                                Labels.Label_Generic(this, bitmap);
+                            }
+                        }
+
+                        break;
+                    }//case
+                case TYPE.EAN8:
+                    {
+                        // Automatically calculate Width if applicable.
+                        Width = BarWidth * Encoded_Value.Length ?? Width;
+
+                        // Automatically calculate Height if applicable.
+                        Height = (int?)(Width / AspectRatio) ?? Height;
+
+                        int ILHeight = Height;
+                        int topLabelAdjustment = 0;
+
+                        int shiftAdjustment = 0;
+
+                        //set alignment
+                        switch (Alignment)
+                        {
+                            case AlignmentPositions.LEFT:
+                                shiftAdjustment = 0;
+                                break;
+                            case AlignmentPositions.RIGHT:
+                                shiftAdjustment = (Width % Encoded_Value.Length);
+                                break;
+                            case AlignmentPositions.CENTER:
+                            default:
+                                shiftAdjustment = (Width % Encoded_Value.Length) / 2;
+                                break;
+                        }//switch
+
+                        if (IncludeLabel)
+                        {
+                            if (((AlternateLabel == null) || RawData.StartsWith(AlternateLabel)) && _StandardizeLabel)
+                            {
+                                // EAN13 standardized label
+                                string defTxt = RawData;
+                                string labTxt = defTxt.Substring(0, 4) + "--" + defTxt.Substring(4, 4);
+
+                                Font font = this.LabelFont;
+                                Font labFont = new Font(font != null ? font.FontFamily.Name : "Arial", Labels.getFontsize(Width, Height, labTxt), FontStyle.Regular);
+
+                                if (font != null)
+                                {
+                                    this.LabelFont.Dispose();
+                                }
+
+                                LabelFont = labFont;
+
+                                ILHeight -= (labFont.Height / 2);
+                            }
+                            else
+                            {
+                                // Shift drawing down if top label.
+                                if ((LabelPosition & (LabelPositions.TOPCENTER | LabelPositions.TOPLEFT | LabelPositions.TOPRIGHT)) > 0)
+                                    topLabelAdjustment = this.LabelFont.Height;
+
+                                ILHeight -= this.LabelFont.Height;
+                            }
+                        }
+
+                        bitmap = new Bitmap(Width, Height);
+                        int iBarWidth = Width / Encoded_Value.Length;
+                        int iBarWidthModifier = 1;
+                        if (iBarWidth <= 0)
+                            throw new Exception("EGENERATE_IMAGE-2: Image size specified not large enough to draw image. (Bar size determined to be less than 1 pixel)");
+
+                        //draw image
+                        int pos = 0;
+                        int halfBarWidth = (int)(iBarWidth * 0.5);
+
+                        using (Graphics g = Graphics.FromImage(bitmap))
+                        {
+                            //clears the image and colors the entire background
+                            g.Clear(BackColor);
+
+                            //lines are fBarWidth wide so draw the appropriate color line vertically
+                            using (Pen backpen = new Pen(BackColor, iBarWidth / iBarWidthModifier))
+                            {
+                                using (Pen pen = new Pen(ForeColor, iBarWidth / iBarWidthModifier))
+                                {
+                                    while (pos < Encoded_Value.Length)
+                                    {
+                                        if (Encoded_Value[pos] == '1')
+                                        {
+                                            g.DrawLine(pen, new Point(pos * iBarWidth + shiftAdjustment + halfBarWidth, topLabelAdjustment), new Point(pos * iBarWidth + shiftAdjustment + halfBarWidth, ILHeight + topLabelAdjustment));
+                                        }
+
+                                        pos++;
+                                    }//while
+                                }//using
+                            }//using
+                        }//using
+                        if (IncludeLabel)
+                        {
+                            if (((AlternateLabel == null) || RawData.StartsWith(AlternateLabel)) && _StandardizeLabel)
+                            {
+                                Labels.Label_EAN8(this, bitmap);
                             }
                             else
                             {

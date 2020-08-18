@@ -231,6 +231,104 @@ namespace BarcodeLib
         }//Label_EAN13
 
         /// <summary>
+        /// Draw label for EAN-8 barcodes
+        /// </summary>
+        /// <param name="Barcode"></param>
+        /// <param name="img"></param>
+        /// <returns></returns>
+        public static Image Label_EAN8(Barcode Barcode, Bitmap img)
+        {
+            try
+            {
+                int iBarWidth = Barcode.Width / Barcode.EncodedValue.Length;
+                string defTxt = Barcode.RawData;
+                {
+                    int shiftAdjustment;
+                    switch (Barcode.Alignment)
+                    {
+                        case AlignmentPositions.LEFT:
+                            shiftAdjustment = 0;
+                            break;
+                        case AlignmentPositions.RIGHT:
+                            shiftAdjustment = (Barcode.Width % Barcode.EncodedValue.Length);
+                            break;
+                        case AlignmentPositions.CENTER:
+                        default:
+                            shiftAdjustment = (Barcode.Width % Barcode.EncodedValue.Length) / 2;
+                            break;
+                    }//switch
+
+                    using (Graphics g = Graphics.FromImage(img))
+                    {
+                        g.DrawImage(img, (float)0, (float)0);
+
+                        g.SmoothingMode = SmoothingMode.HighQuality;
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.CompositingQuality = CompositingQuality.HighQuality;
+                        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+
+                        using (StringFormat f = new StringFormat())
+                        {
+
+                            f.Alignment = StringAlignment.Near;
+                            f.LineAlignment = StringAlignment.Near;
+
+                            int LabelY = 0;
+
+                            //Default alignment for EAN13
+
+                            f.Alignment = StringAlignment.Near;
+
+                            float w1 = iBarWidth * 4; //Width of first block
+                            float w2 = iBarWidth * 29; //Width of second block
+                            float w3 = iBarWidth * 29; //Width of third block
+
+                            float s1 = shiftAdjustment;
+                            float s2 = s1 + (iBarWidth * 3); //Start position of block 2
+                            float s3 = s2 + w2 + (iBarWidth * 3); //Start position of block 3
+
+                            using (var labFont = new Font("Arial", getFontsize((int)(w2 + w3), img.Height, defTxt) * 0.8f, FontStyle.Regular))
+                            {
+                                LabelY = img.Height - labFont.Height;
+
+                                //Draw the background rectangles for each block
+                                using (SolidBrush backBrush = new SolidBrush(Barcode.BackColor))
+                                {
+                                    g.FillRectangle(backBrush, new RectangleF(s2, (float)LabelY, w2, (float)labFont.Height));
+                                    g.FillRectangle(backBrush, new RectangleF(s3, (float)LabelY, w3, (float)labFont.Height));
+                                }
+
+
+                                //draw datastring under the barcode image
+                                using (SolidBrush foreBrush = new SolidBrush(Barcode.ForeColor))
+                                {
+                                    // label part 1
+                                    var str = defTxt.Substring(0, 4);
+                                    var s2labelRect = g.MeasureString(str, labFont);
+                                    g.DrawString(defTxt.Substring(0, 4), labFont, foreBrush, new RectangleF(s2 + (w2 - s2labelRect.Width) / 2, (float)LabelY, (float)img.Width, (float)labFont.Height), f);
+
+                                    // label part 2
+                                    str = defTxt.Substring(4, 4);
+                                    var s3labelRect = g.MeasureString(str, labFont);
+                                    g.DrawString(str, labFont, foreBrush, new RectangleF(s3 + (w3 - s3labelRect.Width) / 2, (float)LabelY, (float)img.Width, (float)labFont.Height), f);
+                                }
+                            }
+                        }
+
+                        g.Save();
+                    }
+                }//using
+                return img;
+            }//try
+            catch (Exception ex)
+            {
+                throw new Exception("ELABEL_EAN8-1: " + ex.Message);
+            }//catch
+        }//Label_EAN8
+
+
+        /// <summary>
         /// Draws Label for UPC-A barcodes
         /// </summary>
         /// <param name="img">Image representation of the barcode without the labels</param>
@@ -317,6 +415,103 @@ namespace BarcodeLib
                 throw new Exception("ELABEL_UPCA-1: " + ex.Message);
             }//catch
         }//Label_UPCA
+
+
+        /// <summary>
+        /// Draw label for UPC-E barcodes
+        /// </summary>
+        /// <param name="Barcode"></param>
+        /// <param name="img"></param>
+        /// <returns></returns>
+        public static Image Label_UPCE(Barcode Barcode, Bitmap img)
+        {
+            try
+            {
+                int iBarWidth = (int)(Barcode.Width / Barcode.EncodedValue.Length);
+                int halfBarWidth = (int)(iBarWidth * 0.5);
+                string defTxt = Barcode.RawData;
+
+                {
+                    int shiftAdjustment;
+                    switch (Barcode.Alignment)
+                    {
+                        case AlignmentPositions.LEFT:
+                            shiftAdjustment = 0;
+                            break;
+                        case AlignmentPositions.RIGHT:
+                            shiftAdjustment = (Barcode.Width % Barcode.EncodedValue.Length);
+                            break;
+                        case AlignmentPositions.CENTER:
+                        default:
+                            shiftAdjustment = (Barcode.Width % Barcode.EncodedValue.Length) / 2;
+                            break;
+                    }//switch
+
+                    using (Graphics g = Graphics.FromImage(img))
+                    {
+                        g.DrawImage(img, (float)0, (float)0);
+
+                        g.SmoothingMode = SmoothingMode.HighQuality;
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.CompositingQuality = CompositingQuality.HighQuality;
+                        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+
+                        using (StringFormat f = new StringFormat())
+                        {
+                            f.Alignment = StringAlignment.Near;
+                            f.LineAlignment = StringAlignment.Near;
+                            int LabelY = 0;
+
+                            //Default alignment for UPCA
+
+                            f.Alignment = StringAlignment.Near;
+
+                            float w1 = iBarWidth * 3; //Width of first block
+                            float w2 = iBarWidth * 43; //Width of second block
+                            float w3 = iBarWidth * 6; //Width of third block
+
+                            float s1 = shiftAdjustment;
+                            float s2 = s1 + (iBarWidth * 3); //Start position of block 2
+                            float s3 = Barcode.Width - shiftAdjustment - 5 * iBarWidth; //Start position of block 3
+
+                            using (var labFont = new Font("Arial", getFontsize((int)(w2), img.Height, defTxt) * 0.8f, FontStyle.Regular))
+                            {
+
+                                LabelY = img.Height - labFont.Height;
+                                using (SolidBrush backBrush = new SolidBrush(Barcode.BackColor))
+                                {
+                                    g.FillRectangle(backBrush, new RectangleF(s2, (float)LabelY, w2, (float)labFont.Height));
+                                }
+
+                                ////draw data string under the barcode image
+                                using (SolidBrush foreBrush = new SolidBrush(Barcode.ForeColor))
+                                {
+                                    using (Font smallFont = new Font(labFont.FontFamily, labFont.SizeInPoints * 0.55f, labFont.Style))
+                                    {
+                                        // label part 1
+                                        g.DrawString(defTxt.Substring(0, 1), smallFont, foreBrush, new RectangleF(s1, (float)img.Height - smallFont.Height, (float)img.Width, (float)labFont.Height), f);
+
+                                        // label part 2
+                                        var labelRect = g.MeasureString(defTxt.Substring(1, 6), labFont);
+                                        g.DrawString(defTxt.Substring(1, 6), labFont, foreBrush, new RectangleF((img.Width - labelRect.Width) / 2, (float)LabelY, (float)img.Width, (float)labFont.Height), f);
+
+                                        // label part 3
+                                        g.DrawString(defTxt.Substring(7), smallFont, foreBrush, new RectangleF(s3 + iBarWidth, (float)img.Height - smallFont.Height, (float)img.Width, (float)labFont.Height), f);
+                                    }
+                                }
+                            }
+                        }
+                        g.Save();
+                    }
+                }//using
+                return img;
+            }//try
+            catch (Exception ex)
+            {
+                throw new Exception("ELABEL_UPCE-1: " + ex.Message);
+            }//catch
+        }//Label_UPCE
 
         public static int getFontsize(int wid, int hgt, string lbl)
         {
