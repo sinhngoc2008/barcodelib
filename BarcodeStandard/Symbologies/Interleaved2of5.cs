@@ -1,4 +1,5 @@
 using System;
+using BarcodeLib;
 
 namespace BarcodeLib.Symbologies
 {

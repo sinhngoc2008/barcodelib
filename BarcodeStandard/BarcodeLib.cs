@@ -24,16 +24,10 @@ using System.Security;
 [assembly: AllowPartiallyTrustedCallers]
 namespace BarcodeLib
 {
-    #region Enums
-    public enum TYPE : int { UNSPECIFIED, UPCA, UPCE, UPC_SUPPLEMENTAL_2DIGIT, UPC_SUPPLEMENTAL_5DIGIT, EAN13, EAN8, Interleaved2of5, Interleaved2of5_Mod10, Standard2of5, Standard2of5_Mod10, Industrial2of5, Industrial2of5_Mod10, CODE39, CODE39Extended, CODE39_Mod43, Codabar, PostNet, BOOKLAND, ISBN, JAN13, MSI_Mod10, MSI_2Mod10, MSI_Mod11, MSI_Mod11_Mod10, Modified_Plessey, CODE11, USD8, UCC12, UCC13, LOGMARS, CODE128, CODE128A, CODE128B, CODE128C, ITF14, CODE93, TELEPEN, FIM, PHARMACODE };
-    public enum SaveTypes : int { JPG, BMP, PNG, GIF, TIFF, UNSPECIFIED };
-    public enum AlignmentPositions : int { CENTER, LEFT, RIGHT };
-    public enum LabelPositions : int { TOPLEFT, TOPCENTER, TOPRIGHT, BOTTOMLEFT, BOTTOMCENTER, BOTTOMRIGHT };
-    #endregion
     /// <summary>
     /// Generates a barcode image of a specified symbology from a string of data.
     /// </summary>
-    public class Barcode : IDisposable
+    internal class Barcode : IBarcodeLib
     {
         #region Variables
         private IBarcode ibarcode = new Blank();
@@ -274,31 +268,9 @@ namespace BarcodeLib
                 }//using
             }
         }
-        /// <summary>
-        /// Gets the assembly version information.
-        /// </summary>
-        public static Version Version
-        {
-            get { return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version; }
-        }
+        
+        
         #endregion
-
-        /// <summary>
-        /// Represents the size of an image in real world coordinates (millimeters or inches).
-        /// </summary>
-        public class ImageSize
-        {
-            public ImageSize(double width, double height, bool metric)
-            {
-                Width = width;
-                Height = height;
-                Metric = metric;
-            }
-
-            public double Width { get; set; }
-            public double Height { get; set; }
-            public bool Metric { get; set; }
-        }
 
         #region General Encode
         /// <summary>
@@ -315,6 +287,7 @@ namespace BarcodeLib
             this.Height = Height;
             return Encode(iType, StringToEncode);
         }//Encode(TYPE, string, int, int)
+        
         /// <summary>
         /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
         /// </summary>
@@ -331,6 +304,7 @@ namespace BarcodeLib
             this.Height = Height;
             return Encode(iType, StringToEncode, ForeColor, BackColor);
         }//Encode(TYPE, string, Color, Color, int, int)
+        
         /// <summary>
         /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
         /// </summary>
@@ -345,6 +319,7 @@ namespace BarcodeLib
             this.ForeColor = ForeColor;
             return Encode(iType, StringToEncode);
         }//(Image)Encode(Type, string, Color, Color)
+        
         /// <summary>
         /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
         /// </summary>
@@ -356,6 +331,7 @@ namespace BarcodeLib
             Raw_Data = StringToEncode;
             return Encode(iType);
         }//(Image)Encode(TYPE, string)
+        
         /// <summary>
         /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
         /// </summary>
@@ -365,6 +341,7 @@ namespace BarcodeLib
             Encoded_Type = iType;
             return Encode();
         }//Encode()
+        
         /// <summary>
         /// Encodes the raw data into a barcode image.
         /// </summary>
@@ -374,9 +351,9 @@ namespace BarcodeLib
 
             DateTime dtStartTime = DateTime.Now;
 
-            this.Encoded_Value = GenerateBarcode();
+            GenerateBarcode();
 
-            _Encoded_Image = (Image)Generate_Image();
+            Generate_Image();
 
             this.EncodedImage.RotateFlip(this.RotateFlipType);
 
@@ -511,7 +488,8 @@ namespace BarcodeLib
             }//switch
 
             this.RawData = ibarcode.RawData;
-            return ibarcode.Encoded_Value;
+            this.Encoded_Value = ibarcode.Encoded_Value;
+            return this.Encoded_Value;
 
         }
         #endregion
@@ -521,7 +499,7 @@ namespace BarcodeLib
         /// Gets a bitmap representation of the encoded data.
         /// </summary>
         /// <returns>Bitmap of encoded value.</returns>
-        private Bitmap Generate_Image()
+        public Bitmap Generate_Image()
         {
             if (Encoded_Value == "") throw new Exception("EGENERATE_IMAGE-1: Must be encoded first.");
             Bitmap bitmap = null;
@@ -638,7 +616,7 @@ namespace BarcodeLib
                                 // UPCA standardized label
                                 string defTxt = RawData;
                                 string labTxt = defTxt.Substring(0, 1) + "--" + defTxt.Substring(1, 6) + "--" + defTxt.Substring(7);
-                                
+
                                 Font labFont = new Font(this.LabelFont != null ? this.LabelFont.FontFamily.Name : "Arial", Labels.getFontsize(Width, Height, labTxt), FontStyle.Regular);
                                 if (this.LabelFont != null)
                                 {
@@ -1112,6 +1090,7 @@ namespace BarcodeLib
 
             return bitmap;
         }//Generate_Image
+        
         /// <summary>
         /// Gets the bytes that represent the image.
         /// </summary>
@@ -1141,6 +1120,7 @@ namespace BarcodeLib
             }//catch  
             return imageData;
         }
+        
         /// <summary>
         /// Saves an encoded image to a specified file and type.
         /// </summary>
@@ -1275,167 +1255,7 @@ namespace BarcodeLib
                 }//catch
             }//else
         }
-        public static SaveData GetSaveDataFromFile(string fileContents)
-        {
-            try
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(SaveData));
-                SaveData saveData;
-                using (TextReader reader = new StringReader(fileContents))
-                {
-                    saveData = (SaveData)serializer.Deserialize(reader);
-                }
-
-                return saveData;
-            }//try
-            catch (Exception ex)
-            {
-                throw new Exception("EGETIMAGEFROMXML-1: " + ex.Message);
-            }//catch
-        }
-        public static Image GetImageFromXML(String internalXML)
-        {
-            try
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(SaveData));
-                SaveData result;
-                using (TextReader reader = new StringReader(internalXML))
-                {
-                    result = (SaveData)serializer.Deserialize(reader);
-                }
-                //loading it to memory stream and then to image object
-                using (MemoryStream ms = new MemoryStream(Convert.FromBase64String(result.Image)))
-                {
-                    return Image.FromStream(ms);
-                }//using
-            }//try
-            catch (Exception ex)
-            {
-                throw new Exception("EGETIMAGEFROMXML-1: " + ex.Message);
-            }//catch
-        }
         #endregion
-
-        #region Static Encode Methods
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="Data">Raw data to encode.</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data)
-        {
-            using (Barcode b = new Barcode())
-            {
-                return b.Encode(iType, Data);
-            }//using
-        }
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="Data">Raw data to encode.</param>
-        /// <param name="XML">XML representation of the data and the image of the barcode.</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data, ref string XML)
-        {
-            using (Barcode b = new Barcode())
-            {
-                Image i = b.Encode(iType, Data);
-                XML = b.XML;
-                return i;
-            }//using
-        }
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="Data">Raw data to encode.</param>
-        /// <param name="IncludeLabel">Include the label at the bottom of the image with data encoded.</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data, bool IncludeLabel)
-        {
-            using (Barcode b = new Barcode())
-            {
-                b.IncludeLabel = IncludeLabel;
-                return b.Encode(iType, Data);
-            }//using
-        }
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="data">Raw data to encode.</param>
-        /// <param name="IncludeLabel">Include the label at the bottom of the image with data encoded.</param>
-        /// <param name="Width">Width of the resulting barcode.(pixels)</param>
-        /// <param name="Height">Height of the resulting barcode.(pixels)</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data, bool IncludeLabel, int Width, int Height)
-        {
-            using (Barcode b = new Barcode())
-            {
-                b.IncludeLabel = IncludeLabel;
-                return b.Encode(iType, Data, Width, Height);
-            }//using
-        }
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="Data">Raw data to encode.</param>
-        /// <param name="IncludeLabel">Include the label at the bottom of the image with data encoded.</param>
-        /// <param name="DrawColor">Foreground color</param>
-        /// <param name="BackColor">Background color</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data, bool IncludeLabel, Color DrawColor, Color BackColor)
-        {
-            using (Barcode b = new Barcode())
-            {
-                b.IncludeLabel = IncludeLabel;
-                return b.Encode(iType, Data, DrawColor, BackColor);
-            }//using
-        }
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="Data">Raw data to encode.</param>
-        /// <param name="IncludeLabel">Include the label at the bottom of the image with data encoded.</param>
-        /// <param name="DrawColor">Foreground color</param>
-        /// <param name="BackColor">Background color</param>
-        /// <param name="Width">Width of the resulting barcode.(pixels)</param>
-        /// <param name="Height">Height of the resulting barcode.(pixels)</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data, bool IncludeLabel, Color DrawColor, Color BackColor, int Width, int Height)
-        {
-            using (Barcode b = new Barcode())
-            {
-                b.IncludeLabel = IncludeLabel;
-                return b.Encode(iType, Data, DrawColor, BackColor, Width, Height);
-            }//using
-        }
-        /// <summary>
-        /// Encodes the raw data into binary form representing bars and spaces.  Also generates an Image of the barcode.
-        /// </summary>
-        /// <param name="iType">Type of encoding to use.</param>
-        /// <param name="Data">Raw data to encode.</param>
-        /// <param name="IncludeLabel">Include the label at the bottom of the image with data encoded.</param>
-        /// <param name="DrawColor">Foreground color</param>
-        /// <param name="BackColor">Background color</param>
-        /// <param name="Width">Width of the resulting barcode.(pixels)</param>
-        /// <param name="Height">Height of the resulting barcode.(pixels)</param>
-        /// <param name="XML">XML representation of the data and the image of the barcode.</param>
-        /// <returns>Image representing the barcode.</returns>
-        public static Image DoEncode(TYPE iType, string Data, bool IncludeLabel, Color DrawColor, Color BackColor, int Width, int Height, ref string XML)
-        {
-            using (Barcode b = new Barcode())
-            {
-                b.IncludeLabel = IncludeLabel;
-                Image i = b.Encode(iType, Data, DrawColor, BackColor, Width, Height);
-                XML = b.XML;
-                return i;
-            }//using
-        }
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
@@ -1474,7 +1294,7 @@ namespace BarcodeLib
         // }
 
         // This code added to correctly implement the disposable pattern.
-        void IDisposable.Dispose()
+        public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
@@ -1483,6 +1303,5 @@ namespace BarcodeLib
         }
         #endregion
 
-        #endregion
     }//Barcode Class
 }//Barcode namespace

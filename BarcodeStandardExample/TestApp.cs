@@ -14,7 +14,7 @@ namespace BarcodeStandardExample
     /// </summary>
     public partial class TestApp : Form
     {
-        Barcode b = new Barcode();
+        IBarcodeLib b = Utils.InitBarcodeLib();
         
         public TestApp()
         {
@@ -39,7 +39,7 @@ namespace BarcodeStandardExample
             this.cbRotateFlip.SelectedIndex = i;
 
             //Show library version
-            this.tslblLibraryVersion.Text = "Barcode Library Version: " + Barcode.Version.ToString();
+            this.tslblLibraryVersion.Text = "Barcode Library Version: " + Utils.Version.ToString();
 
             this.btnBackColor.BackColor = this.b.BackColor;
             this.btnForeColor.BackColor = this.b.ForeColor;
@@ -240,12 +240,12 @@ namespace BarcodeStandardExample
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     string fileContents = File.ReadAllText(ofd.FileName);
-                    using (BarcodeStandard.SaveData XML = Barcode.GetSaveDataFromFile(fileContents))
+                    using (BarcodeStandard.SaveData XML = Utils.GetSaveDataFromFile(fileContents))
                     {
                         //load image from xml
                         this.barcode.Width = XML.ImageWidth;
                         this.barcode.Height = XML.ImageHeight;
-                        this.barcode.BackgroundImage = Barcode.GetImageFromXML(fileContents);
+                        this.barcode.BackgroundImage = Utils.GetImageFromXML(fileContents);
 
                         //populate the screen
                         this.txtData.Text = XML.RawData;
@@ -392,7 +392,7 @@ namespace BarcodeStandardExample
         {
             try
             {
-                using (Barcode barcode = new Barcode())
+                using (IBarcodeLib barcode = Utils.InitBarcodeLib())
                 {
                     using (MemoryStream ms = new MemoryStream())
                     {
